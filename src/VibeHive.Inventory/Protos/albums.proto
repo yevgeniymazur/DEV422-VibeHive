@@ -1,0 +1,23 @@
+syntax = "proto3";
+option csharp_namespace = "VibeHive.Inventory.Grpc";
+package vibehive.inventory;
+
+// Owner: TheKeybladeofSolace — album inventory service contract.
+service AlbumInventory {
+  rpc AddAlbum (Album) returns (Album);
+  rpc GetAlbum (AlbumId) returns (Album);
+  rpc UpdateAlbum (Album) returns (Album);
+  rpc DeleteAlbum (AlbumId) returns (DeleteAlbumReply);
+  rpc ListAlbums (ListAlbumsRequest) returns (stream Album);
+}
+message Album {
+  string id = 1;
+  string title = 2;
+  string artist = 3;
+  string genre = 4;
+  int32 year = 5;
+  bool available = 6;
+}
+message AlbumId { string id = 1; }
+message ListAlbumsRequest {}
+message DeleteAlbumReply { bool deleted = 1; }

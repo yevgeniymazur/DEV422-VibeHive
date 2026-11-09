@@ -1,0 +1,36 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VibeHive.Contracts", "src\VibeHive.Contracts\VibeHive.Contracts.csproj", "{82CC89C7-2088-4A6D-8C0D-2BDA2017C8F7}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VibeHive.Api", "src\VibeHive.Api\VibeHive.Api.csproj", "{36AC0BA0-2409-40FA-8A3E-C8682F1F7752}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VibeHive.Inventory", "src\VibeHive.Inventory\VibeHive.Inventory.csproj", "{47843142-120E-4D4A-8111-1E464999722A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VibeHive.WinForms", "src\VibeHive.WinForms\VibeHive.WinForms.csproj", "{92120B75-4147-4AAF-93A9-1407BED194C1}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{82CC89C7-2088-4A6D-8C0D-2BDA2017C8F7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{82CC89C7-2088-4A6D-8C0D-2BDA2017C8F7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{82CC89C7-2088-4A6D-8C0D-2BDA2017C8F7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{82CC89C7-2088-4A6D-8C0D-2BDA2017C8F7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{36AC0BA0-2409-40FA-8A3E-C8682F1F7752}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{36AC0BA0-2409-40FA-8A3E-C8682F1F7752}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{36AC0BA0-2409-40FA-8A3E-C8682F1F7752}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{36AC0BA0-2409-40FA-8A3E-C8682F1F7752}.Release|Any CPU.Build.0 = Release|Any CPU
+		{47843142-120E-4D4A-8111-1E464999722A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{47843142-120E-4D4A-8111-1E464999722A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{47843142-120E-4D4A-8111-1E464999722A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{47843142-120E-4D4A-8111-1E464999722A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{92120B75-4147-4AAF-93A9-1407BED194C1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{92120B75-4147-4AAF-93A9-1407BED194C1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{92120B75-4147-4AAF-93A9-1407BED194C1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{92120B75-4147-4AAF-93A9-1407BED194C1}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
