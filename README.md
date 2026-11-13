@@ -14,9 +14,8 @@ event, ticket, or inventory operations are implemented yet.
 | Album Inventory gRPC | Eugene Mazur, Wilber Amaya-Maurisio, TheKeybladeofSolace | VibeHive.Inventory; InventoryControl.cs |
 
 
-Ownership reflects the current plan; the team must agree on the third member's
-active contribution. All three members must contribute and appear in the video.
-These are the three planned components; Music Rental is not included.
+Ownership reflects the current plan, All three members must contribute and appear in the video.
+
 
 ## Open and run on Windows
 
