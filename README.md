@@ -10,8 +10,7 @@ event, ticket, or inventory operations are implemented yet.
 | --- | --- | --- |
 | Events & Ticketing, registration, login, JWT, roles | Eugene Mazur | API Auth/Users/Events/Tickets controllers; EventsTicketsControl.cs |
 | Collaborative Playlist Builder | TheKeybladeofSolace | PlaylistsController.cs; PlaylistsControl.cs |
-| Music Rental Management | Wilber Amaya-Maurisio | MusicAlbum.cs; MusicRental.cs;
-MusicStore.cs: MusicController.cs; RentalController.cs |
+| Music Rental Management | Wilber Amaya-Maurisio | MusicAlbum.cs; MusicRental.cs; MusicStore.cs: MusicController.cs; RentalController.cs |
 | Album Inventory gRPC | Eugene Mazur, Wilber Amaya-Maurisio, TheKeybladeofSolace | VibeHive.Inventory; InventoryControl.cs |
 
 
