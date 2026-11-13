@@ -3,6 +3,7 @@ using VibeHive.Api.Music;
 using VibeHive.Contracts;
 
 namespace VibeHive.Api.Controllers;
+// Created by Wilber Amaya-Maurisio
 
 [ApiController]
 [Route("api/rentals")]

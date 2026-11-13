@@ -14,6 +14,7 @@ public class MainForm : Form
         var tabs = new TabControl { Dock = DockStyle.Fill };
         AddTab(tabs, "Events & Tickets", new EventsTicketsControl());
         AddTab(tabs, "Playlists", new PlaylistsControl());
+        AddTab(tabs, "Music Rental", new MusicRentalControl());
         AddTab(tabs, "Album Inventory", new InventoryControl());
         Controls.Add(tabs);
     }
