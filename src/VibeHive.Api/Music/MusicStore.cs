@@ -1,7 +1,7 @@
 using VibeHive.Contracts;
 
 namespace VibeHive.Api.Music;
-
+// Created by Wilber Amaya-Maurisio
 // In memory storage for the music rental module, resets when the API restarts
 public static class MusicStore
 {

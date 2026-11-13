@@ -1,7 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 
 namespace VibeHive.Contracts;
-
+// Created by Wilber Amaya-Maurisio
 // Shared by the API and the WinForms screen
 public class MusicAlbum
 {
