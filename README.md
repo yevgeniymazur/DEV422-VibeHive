@@ -10,8 +10,9 @@ event, ticket, or inventory operations are implemented yet.
 | --- | --- | --- |
 | Events & Ticketing, registration, login, JWT, roles | Eugene Mazur | API Auth/Users/Events/Tickets controllers; EventsTicketsControl.cs |
 | Collaborative Playlist Builder | TheKeybladeofSolace | PlaylistsController.cs; PlaylistsControl.cs |
-| Album Inventory gRPC | TheKeybladeofSolace | VibeHive.Inventory; InventoryControl.cs |
-| Third teammate's specific contribution | To be agreed by the team | Divide one of the modules or integration work together |
+| Music Rental Management | Wilber Amaya-Maurisio | TBD |
+| Album Inventory gRPC | Eugene Mazur, Wilber Amaya-Maurisio, TheKeybladeofSolace | VibeHive.Inventory; InventoryControl.cs |
+
 
 Ownership reflects the current plan; the team must agree on the third member's
 active contribution. All three members must contribute and appear in the video.
@@ -60,7 +61,8 @@ Unimplemented. WinForms does not call the services yet.
 - Eugene: user models, registration, password hashing, login/JWT, authorization, events/tickets, and matching WinForms screens.
 - TheKeybladeofSolace: playlist models and Command Pattern, REST endpoints, voting refresh, and matching screen.
 - TheKeybladeofSolace: gRPC album CRUD, validation/errors, inventory client, and matching screen. ListAlbums is server streaming; add bidirectional updates if the team chooses that enhancement.
-- Team: agree on the third teammate's work, shared data contracts, persistence, and integration.
+- Wilber Amaya-Maurisio: music rental module, with album and rental models, REST endpoints (`/api/music`, `/api/rentals`) with input validation, and a matching WinForms screen built as a UserControl so it can be hosted in the shared main window.
+- Team: shared data contracts (such as passing the logged-in user's ID and name from login into the music rental screen), API ports, persistence, and integration. Shared responsibility over album inventory microservices.
 
 ## Build verification
 
