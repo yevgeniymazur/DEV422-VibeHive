@@ -102,3 +102,117 @@ organizer. The script creates test accounts and an event, so use a fresh demo AP
 It checks registration, login, token rejection, organizer permissions, quantity
 validation, concurrent booking capacity, booking ownership, and cancellation.
 WinForms compiles on Linux with Windows targeting but needs a Windows UI check.
+
+
+<!-- Updated by Yevgeniy Mazur — November 13, 2026 -->
+
+<!-- Updated by Yevgeniy Mazur — November 13, 2026 -->
+
+## Events & Ticketing — Yevgeniy Mazur
+
+Implemented and manually tested in the Windows Forms application.
+
+### User Roles
+
+- **User:** Browse approved events, book tickets, and view or cancel their own bookings.
+- **Event Manager:** Submit event requests, review proposed changes, and view bookings for their events.
+- **Admin:** Review all event requests, approve or reject requests, propose schedule changes, and view, cancel, or adjust bookings.
+
+Approved upcoming events are visible without signing in. Booking and management actions require JWT authentication.
+
+### Venues and Capacity
+
+Managers select from five venues:
+
+- **The Crocodile:** 750 tickets
+- **The Showbox:** 1,100 tickets
+- **Showbox SoDo:** 1,800 tickets
+- **WAMU Theater:** 9,000 tickets
+- **Tacoma Dome:** 22,000 tickets
+
+These are the application's maximum ticket limits, based on published venue configurations. Each event session can use a lower capacity.
+
+### Event Scheduling and Approval
+
+Managers submit an event name, genre, venue, and one or more sessions. Each session has its own date, start time, end time, and ticket capacity.
+
+1. The manager submits an event request.
+2. The admin approves, rejects, or proposes changes.
+3. If changes are proposed, the manager reviews and accepts or declines them.
+4. Once approved, the event becomes available for ticket booking.
+
+Admins can propose different dates, start/end times, and capacities. The original schedule remains unchanged until the requesting manager accepts the proposal.
+
+Pending requests and proposals do not reserve the venue. Multiple managers can request overlapping times, but only non-overlapping sessions at the same venue can receive final approval. Availability is checked again when a manager accepts a proposal.
+
+### Editing Sessions
+
+- **Add dates:** Add one session for each date in the selected range.
+- **Update selected:** Apply the entered time and capacity to the selected session.
+- **Update all:** Apply the entered time and capacity to every session.
+- **Remove selected:** Remove an unwanted session.
+- **Clear dates:** Remove all sessions from the editor.
+
+Review the session table before submitting a request or proposal. Changing an input field alone does not update existing sessions. To replace dates, remove the unwanted sessions and add new ones.
+
+### Ticket Management
+
+- Tickets are booked for a specific approved session.
+- Bookings are confirmed immediately when tickets are available.
+- Availability is tracked separately for each session.
+- Capacity checks prevent overselling.
+- Cancelling a booking restores its tickets to availability.
+- Admins can adjust booking quantities without exceeding session capacity.
+- Booking statuses are **Booked** and **Cancelled**.
+- Bookings cannot be cancelled or adjusted after the session starts.
+
+### Running the Module
+
+1. Open `VibeHive.sln` in Visual Studio.
+2. Restore packages and build the solution.
+3. Configure multiple startup projects:
+   - **VibeHive.Api:** Start
+   - **VibeHive.WinForms:** Start
+4. Press **F5**.
+5. Open the **Events & Tickets** tab.
+
+The REST API runs at `http://localhost:5080`.
+
+Use **Sign in / Register** to create accounts. Registration includes role selection for the classroom demonstration; a production application would restrict privileged account creation.
+
+The previous Organizer user-secrets setup is no longer used. Accounts now use the **User**, **Event Manager**, and **Admin** roles.
+
+### Testing the Workflow
+
+Keep the API running while switching accounts.
+
+1. Register an Event Manager account and submit a multi-day event request.
+2. Register an Admin account and select **All event requests**.
+3. Propose changes to session dates, times, or capacity.
+4. Sign in as the requesting manager and select **My event requests**.
+5. Enable **Show proposed schedule**, review the changes, and accept the proposal.
+6. Sign in as a User and book tickets for an approved session.
+7. Verify that availability decreases after booking and increases after cancellation.
+8. As Admin, open **Bookings → All bookings** and test quantity adjustments.
+9. Attempt to approve an overlapping event at the same venue and verify that the system rejects the conflict.
+
+### Interface
+
+The Events & Tickets module includes:
+
+- Dark styling with readable event, session, and booking tables.
+- A separate sign-in and registration window.
+- Role-based management controls.
+- Original and proposed schedule views.
+- Venue selection and adjustable session capacities.
+- Hidden internal IDs.
+
+### Current Limitations
+
+- Accounts, events, and bookings are stored in memory and reset when the API restarts.
+- JWT sessions expire after one hour; sign out and sign in again to renew.
+- Authentication is currently managed within the Events & Tickets module.
+- Tickets use general admission counts without individual seat selection.
+- Payment processing is not included.
+- Schedule proposals currently apply to requests awaiting approval, not events already approved.
+- The earlier `tests/events_smoke.py` script targets the initial implementation and needs updating for this revised workflow.
