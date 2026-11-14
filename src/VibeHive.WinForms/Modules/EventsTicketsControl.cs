@@ -3,102 +3,301 @@
 
 using VibeHive.Contracts;
 using VibeHive.WinForms.Services;
+using VibeHive.WinForms.UI;
+
 namespace VibeHive.WinForms.Modules;
 
-public class EventsTicketsControl : UserControl
+public partial class EventsTicketsControl : UserControl
 {
     private readonly EventsClient client = new();
-    private readonly TextBox name = new() { PlaceholderText = "Name (registration)", Width = 155 };
-    private readonly TextBox email = new() { PlaceholderText = "Email", Width = 190 };
-    private readonly TextBox password = new() { PlaceholderText = "Password", UseSystemPasswordChar = true, Width = 150 };
-    private readonly Label status = new() { AutoSize = true, Text = "Browse events or sign in to book tickets.", Padding = new Padding(5) };
-    private readonly DataGridView events = Grid();
-    private readonly DataGridView tickets = Grid();
-    private readonly NumericUpDown quantity = new() { Minimum = 1, Maximum = 10, Value = 1, Width = 55 };
-    private readonly TextBox title = new() { PlaceholderText = "Event title", Width = 170 };
-    private readonly TextBox venue = new() { PlaceholderText = "Venue", Width = 170 };
-    private readonly DateTimePicker starts = new() { Format = DateTimePickerFormat.Custom, CustomFormat = "yyyy-MM-dd HH:mm", Width = 155, Value = DateTime.Now.AddDays(1) };
-    private readonly NumericUpDown capacity = new() { Minimum = 1, Maximum = 100000, Value = 100, Width = 75 };
-    private readonly FlowLayoutPanel organizer = new() { Dock = DockStyle.Fill, AutoSize = true, Visible = false };
-    private readonly Button login;
-    private readonly Button register;
-    private readonly Button logout;
-    private readonly Button book;
-    private readonly Button cancel;
+
+    private readonly Label accountLabel =
+        DarkTheme.Label("Browsing as guest");
+
+    private readonly Label statusLabel =
+        DarkTheme.Label("Sign in to book tickets.");
+
+    private readonly Label scheduleNote =
+        DarkTheme.Label("Select an event to view its sessions.");
+
+    private readonly DataGridView eventsGrid = DarkTheme.Grid();
+    private readonly DataGridView sessionsGrid = DarkTheme.Grid();
+    private readonly DataGridView ticketsGrid = DarkTheme.Grid();
+
+    private readonly ComboBox eventView = new()
+    {
+        DropDownStyle = ComboBoxStyle.DropDownList,
+        Width = 190
+    };
+
+    private readonly NumericUpDown quantity = new()
+    {
+        Minimum = 1,
+        Maximum = 10,
+        Value = 1,
+        Width = 65
+    };
+
+    private readonly CheckBox showProposal = new()
+    {
+        Text = "Show proposed schedule",
+        AutoSize = true
+    };
+
+    private readonly Button accountButton =
+        DarkTheme.Button("Sign in / Register");
+
+    private readonly Button logoutButton =
+        DarkTheme.Button("Sign out");
+
+    private readonly Button createButton =
+        DarkTheme.Button("Request event");
+
+    private readonly Button approveButton =
+        DarkTheme.Button("Approve");
+
+    private readonly Button proposeButton =
+        DarkTheme.Button("Propose changes");
+
+    private readonly Button rejectButton =
+        DarkTheme.Button("Reject");
+
+    private readonly Button acceptButton =
+        DarkTheme.Button("Accept proposal");
+
+    private readonly Button declineButton =
+        DarkTheme.Button("Decline proposal");
+
+    private readonly Button bookButton =
+        DarkTheme.Button("Book tickets");
+
+    private readonly Button cancelButton =
+        DarkTheme.Button("Cancel booking");
+
+    private readonly Button adjustButton =
+        DarkTheme.Button("Adjust quantity");
+
+    private readonly Button myTicketsButton =
+        DarkTheme.Button("My bookings");
+
+    private readonly Button eventTicketsButton =
+        DarkTheme.Button("Selected event bookings");
+
+    private readonly Button allTicketsButton =
+        DarkTheme.Button("All bookings");
+
+    private readonly TabControl pages = new()
+    {
+        Dock = DockStyle.Fill
+    };
+
     private bool busy;
+    private bool updatingView;
 
     public EventsTicketsControl()
     {
         Dock = DockStyle.Fill;
-        var layout = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 8, Padding = new Padding(10) };
-        for (int i = 0; i < 8; i++) layout.RowStyles.Add(new RowStyle(i is 3 or 6 ? SizeType.Percent : SizeType.AutoSize, i is 3 or 6 ? 50 : 0));
-        var auth = new FlowLayoutPanel { Dock = DockStyle.Fill, AutoSize = true };
-        register = ActionButton("Register", async () => {
-            await client.Register(new(name.Text, email.Text, password.Text));
-            password.Clear(); status.Text = "Registered. Enter your password and sign in.";
-        });
-        login = ActionButton("Sign in", async () => {
-            await client.Login(new(email.Text, password.Text)); password.Clear(); UpdateSession(); await RefreshData();
-        });
-        logout = ActionButton("Sign out", () => { client.Logout(); tickets.DataSource = null; UpdateSession(); return Task.CompletedTask; });
-        auth.Controls.AddRange([name, email, password, register, login, logout]);
-        layout.Controls.Add(auth, 0, 0);
-        layout.Controls.Add(status, 0, 1);
-        var eventActions = new FlowLayoutPanel { Dock = DockStyle.Fill, AutoSize = true };
-        book = ActionButton("Book selected event", async () => {
-            if (events.CurrentRow?.DataBoundItem is not EventDto item) throw new InvalidOperationException("Select an event first.");
-            await client.Book(new(item.Id, (int)quantity.Value)); await RefreshData(); status.Text = "Tickets booked.";
-        });
-        eventActions.Controls.AddRange([ActionButton("Refresh events", RefreshData), new Label { Text = "Quantity", AutoSize = true, Padding = new Padding(0, 7, 0, 0) }, quantity, book]);
-        layout.Controls.Add(eventActions, 0, 2);
-        layout.Controls.Add(events, 0, 3);
-        organizer.Controls.AddRange([title, venue, starts, capacity, ActionButton("Create event", async () => {
-            await client.Create(new(title.Text, venue.Text, new DateTimeOffset(starts.Value), (int)capacity.Value));
-            title.Clear(); venue.Clear(); await RefreshData(); status.Text = "Event created.";
-        })]);
-        layout.Controls.Add(organizer, 0, 4);
-        layout.Controls.Add(new Label { Text = "My ticket bookings", AutoSize = true }, 0, 5);
-        layout.Controls.Add(tickets, 0, 6);
-        cancel = ActionButton("Cancel selected booking", async () => {
-            if (tickets.CurrentRow?.DataBoundItem is not TicketDto ticket) throw new InvalidOperationException("Select a booking first.");
-            await client.Cancel(ticket.Id); await RefreshData(); status.Text = "Booking cancelled.";
-        });
-        layout.Controls.Add(cancel, 0, 7);
+        AutoScaleMode = AutoScaleMode.Dpi;
+
+        var layout = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            ColumnCount = 1,
+            RowCount = 4,
+            Padding = new Padding(16)
+        };
+
+        layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+        layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+
+        var heading = DarkTheme.Label("Events & Tickets", true);
+
+        var accountBar = Bar(
+            accountLabel,
+            accountButton,
+            logoutButton);
+
+        layout.Controls.Add(heading, 0, 0);
+        layout.Controls.Add(accountBar, 0, 1);
+        layout.Controls.Add(pages, 0, 2);
+        layout.Controls.Add(statusLabel, 0, 3);
+
+        BuildEventsPage();
+        BuildBookingsPage();
+
         Controls.Add(layout);
-        UpdateSession();
-        Load += async (_, _) => await Run(RefreshData);
+
+        DarkTheme.Apply(this);
+
+        BackColor = DarkTheme.Background;
+        layout.BackColor = DarkTheme.Background;
+        heading.Font = new Font("Segoe UI", 19, FontStyle.Bold);
+
+        ConfigureColumns();
+        ConnectActions();
+        UpdateAccount();
+
+        Load += async (_, _) => await Run(RefreshEvents);
     }
-    private static DataGridView Grid() => new() { Dock = DockStyle.Fill, ReadOnly = true, AutoGenerateColumns = true, AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.DisplayedCells, AllowUserToAddRows = false, AllowUserToDeleteRows = false, MultiSelect = false, SelectionMode = DataGridViewSelectionMode.FullRowSelect };
-    private Button ActionButton(string text, Func<Task> action)
+
+    private void BuildEventsPage()
     {
-        var button = new Button { Text = text, AutoSize = true };
-        button.Click += async (_, _) => await Run(action);
-        return button;
+        var page = new TabPage("Events");
+        var layout = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            ColumnCount = 1,
+            RowCount = 6,
+            Padding = new Padding(10)
+        };
+
+        layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        layout.RowStyles.Add(new RowStyle(SizeType.Percent, 55));
+        layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        layout.RowStyles.Add(new RowStyle(SizeType.Percent, 45));
+        layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+
+        var refresh = DarkTheme.Button("Refresh");
+        refresh.Click += async (_, _) => await Run(RefreshEvents);
+
+        layout.Controls.Add(
+            Bar(eventView, refresh, createButton), 0, 0);
+
+        layout.Controls.Add(eventsGrid, 0, 1);
+
+        layout.Controls.Add(
+            Bar(
+                approveButton,
+                proposeButton,
+                rejectButton,
+                acceptButton,
+                declineButton), 0, 2);
+
+        scheduleNote.MaximumSize = new Size(850, 0);
+
+        layout.Controls.Add(
+            Bar(showProposal, scheduleNote), 0, 3);
+
+        layout.Controls.Add(sessionsGrid, 0, 4);
+
+        layout.Controls.Add(
+            Bar(
+                DarkTheme.Label("Tickets"),
+                quantity,
+                bookButton), 0, 5);
+
+        page.Controls.Add(layout);
+        pages.TabPages.Add(page);
     }
-    private async Task Run(Func<Task> action)
+
+    private void BuildBookingsPage()
     {
-        if (busy) return;
-        busy = true; Enabled = false;
-        try { await action(); }
-        catch (Exception ex) { status.Text = ex.Message; }
-        finally { busy = false; Enabled = true; }
+        var page = new TabPage("Bookings");
+        var layout = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            ColumnCount = 1,
+            RowCount = 3,
+            Padding = new Padding(10)
+        };
+
+        layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+        layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+
+        layout.Controls.Add(
+            Bar(
+                myTicketsButton,
+                eventTicketsButton,
+                allTicketsButton), 0, 0);
+
+        layout.Controls.Add(ticketsGrid, 0, 1);
+
+        layout.Controls.Add(
+            Bar(cancelButton, adjustButton), 0, 2);
+
+        page.Controls.Add(layout);
+        pages.TabPages.Add(page);
     }
-    private void UpdateSession()
+
+    private void ConfigureColumns()
     {
-        var user = client.Session?.User;
-        login.Enabled = register.Enabled = user is null;
-        logout.Enabled = book.Enabled = cancel.Enabled = user is not null;
-        organizer.Visible = user?.Role == "Organizer";
-        status.Text = user is null ? "Browse events or sign in to book tickets." : $"Signed in: {user.Name} ({user.Role})";
+        AddColumn(eventsGrid, "Event", nameof(EventDto.Name));
+        AddColumn(eventsGrid, "Venue", nameof(EventDto.VenueName));
+        AddColumn(eventsGrid, "Genre", nameof(EventDto.Genre));
+        AddColumn(eventsGrid, "Manager", nameof(EventDto.ManagerName));
+        AddColumn(eventsGrid, "Status", nameof(EventDto.Status));
+
+        AddColumn(
+            sessionsGrid, "Start",
+            nameof(EventSessionDto.StartsAt), "g");
+
+        AddColumn(
+            sessionsGrid, "End",
+            nameof(EventSessionDto.EndsAt), "g");
+
+        AddColumn(
+            sessionsGrid, "Capacity",
+            nameof(EventSessionDto.Capacity), "N0");
+
+        AddColumn(
+            sessionsGrid, "Available",
+            nameof(EventSessionDto.AvailableTickets), "N0");
+
+        AddColumn(ticketsGrid, "Event", nameof(TicketDto.EventName));
+        AddColumn(ticketsGrid, "Venue", nameof(TicketDto.VenueName));
+        AddColumn(ticketsGrid, "Name", nameof(TicketDto.UserName));
+
+        AddColumn(
+            ticketsGrid, "Start",
+            nameof(TicketDto.StartsAt), "g");
+
+        AddColumn(ticketsGrid, "Tickets", nameof(TicketDto.Quantity));
+        AddColumn(ticketsGrid, "Status", nameof(TicketDto.Status));
     }
-    private async Task RefreshData()
+
+    private static void AddColumn(
+        DataGridView grid,
+        string title,
+        string property,
+        string? format = null)
     {
-        events.DataSource = await client.Events();
-        tickets.DataSource = client.Session is null ? null : await client.Tickets();
+        var column = new DataGridViewTextBoxColumn
+        {
+            HeaderText = title,
+            DataPropertyName = property,
+            SortMode = DataGridViewColumnSortMode.NotSortable
+        };
+
+        if (format is not null)
+            column.DefaultCellStyle.Format = format;
+
+        grid.Columns.Add(column);
     }
+
+    private static FlowLayoutPanel Bar(params Control[] controls)
+    {
+        var panel = new FlowLayoutPanel
+        {
+            Dock = DockStyle.Top,
+            AutoSize = true,
+            WrapContents = true,
+            Padding = new Padding(2, 4, 2, 4)
+        };
+
+        panel.Controls.AddRange(controls);
+
+        return panel;
+    }
+
     protected override void Dispose(bool disposing)
     {
-        if (disposing) client.Dispose();
+        if (disposing)
+            client.Dispose();
+
         base.Dispose(disposing);
     }
 }
