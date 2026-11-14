@@ -1,8 +1,9 @@
 # VibeHive
 
 DEV422 team midterm: one Windows Forms desktop app with REST and gRPC services.
-This is a starter skeleton, not a completed assignment. No login, JWT, playlist,
-event, ticket, or inventory operations are implemented yet.
+Events & Ticketing now includes registration, JWT login, organizer event creation,
+and customer ticket bookings with a matching WinForms screen. Music Rental is
+merged. Playlist and inventory integration remain separate work.
 
 ## Module ownership
 
@@ -24,7 +25,7 @@ Ownership reflects the current plan, All three members must contribute and appea
 3. Restore NuGet packages and build the solution.
 4. For the gRPC HTTPS endpoint, run `dotnet dev-certs https --trust` once.
 5. In solution properties, set multiple startup projects: **VibeHive.Api**, **VibeHive.Inventory**, and **VibeHive.WinForms** to Start.
-6. Press F5. The desktop app currently shows three placeholder tabs.
+6. Press F5. The desktop app shows four module tabs.
 
 Alternatively, start each project in a separate terminal:
 
@@ -36,7 +37,7 @@ dotnet run --project src/VibeHive.WinForms
 
 The REST health endpoint is http://localhost:5080/health.
 The gRPC service uses https://localhost:7081; its CRUD methods currently return
-Unimplemented. WinForms does not call the services yet.
+Unimplemented. The Events & Tickets and Music Rental screens call the REST API.
 
 ## Project layout
 
@@ -67,3 +68,37 @@ Unimplemented. WinForms does not call the services yet.
 
 A Windows GitHub Actions workflow restores and builds all four projects on pushes
 and pull requests. It does not exercise desktop interactions or implemented features.
+
+## Events & Ticketing setup
+
+Accounts, events, and tickets are stored in memory and reset when the API restarts.
+Public registration creates Customers. An Organizer can create events; signed-in
+users can book tickets, view their own bookings, and cancel before the event starts.
+Cancellation returns seats to availability. Booking checks prevent overselling.
+
+Before starting the API, configure your organizer account locally:
+
+```powershell
+dotnet user-secrets set "Organizer:Email" "your-email@example.com" --project src/VibeHive.Api
+dotnet user-secrets set "Organizer:Password" "YOUR_PRIVATE_PASSWORD" --project src/VibeHive.Api
+```
+
+Use a password with at least eight characters. Sign in with those credentials in
+Events & Tickets to show the event creation controls. Register another account to
+try the Customer flow. Dates entered in the desktop app use the computer's local
+time. Tokens expire after one hour; sign out and sign in again to renew the session.
+
+The API generates a temporary JWT signing key on startup. Optionally configure
+`Jwt:Key` through user secrets with at least 32 UTF-8 bytes. Tokens are kept only in
+memory by the desktop client. Login is currently local to the Events & Tickets
+screen; passing the session to other modules remains team integration work.
+
+### Event API verification
+
+Build with `dotnet build VibeHive.sln`. Run a fresh API with organizer credentials
+configured, then run `python tests/events_smoke.py`. The test process needs
+`Organizer__Email` and `Organizer__Password` environment variables matching that
+organizer. The script creates test accounts and an event, so use a fresh demo API.
+It checks registration, login, token rejection, organizer permissions, quantity
+validation, concurrent booking capacity, booking ownership, and cancellation.
+WinForms compiles on Linux with Windows targeting but needs a Windows UI check.

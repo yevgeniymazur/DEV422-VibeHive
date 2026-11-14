@@ -1,11 +1,22 @@
+// Yevgeniy Mazur
+// Current user details.
+
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-
+using VibeHive.Api.Events;
+using VibeHive.Contracts;
 namespace VibeHive.Api.Controllers;
-
-// Owner: Eugene Mazur — registration and user roles.
-[ApiController]
-[Route("api/users")]
-public class UsersController : ControllerBase
+[ApiController, Authorize, Route("api/users")]
+public class UsersController(EventStore store) : ControllerBase
 {
-    // TODO: Implement this module's endpoints.
+    [HttpGet("me")]
+    public ActionResult<UserDto> Me()
+    {
+        lock (store.Gate)
+        {
+            var account = store.Users.SingleOrDefault(u => u.User.Id.ToString() == User.FindFirstValue(ClaimTypes.NameIdentifier));
+            return account is null ? NotFound() : Ok(account.User);
+        }
+    }
 }
