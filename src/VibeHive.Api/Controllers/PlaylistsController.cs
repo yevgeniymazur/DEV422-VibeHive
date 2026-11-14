@@ -8,8 +8,10 @@ namespace VibeHive.Api.Controllers;
 public class PlaylistsController : ControllerBase
 {
     // TODO: Implement this module's endpoints.
-    private static List<Song> songs = new();
+
+    private static List<Song> Songs = new();
     private static List<Playlist> playlists = new();
+    
     private static int followingId = 1;
 
     [HttpPost]
@@ -20,16 +22,16 @@ public class PlaylistsController : ControllerBase
             Id = followingId++,
             Name = request.Name,
             CreatedBy = request.CreatedBy,
-            IsCollaborative = request.IsCollaborative
+            IsCollaborative = request.IsCollaborative,
             Songs = new List<Song>()
         };
 
-        playlists.Add(Playlist);
+        playlists.Add(playlist);
 
-        return CreatedAction(
-            nameof (GetPlaylistById)k
-            new { id = Playlist.Id },
-            Playlist);
+        return CreatedAtAction(
+            nameof (GetPlaylistById),
+            new { id = playlist.Id },
+            playlist);
     }
 
     [HttpGet("{id}")]
@@ -53,7 +55,7 @@ public IActionResult AddASong(int id, AddSongRequest request)
         return NotFound("That playlist could not be found. Sorry");
     }
 
-    var song = songs.FirstOrDefault(s => s.Id == request.SongId);
+    var song = Songs.FirstOrDefault(s => s.Id == request.SongId);
     if (song == null)
     {
         return NotFound("Sorry, we could not find that song.");
@@ -103,13 +105,13 @@ public IActionResult InviteCollaborator(int id, [FromBody] InviteCollaboratorReq
      {
          return BadRequest("Sorry, the song you are searching for ain't there. Please try again.");
      }
-     var song = songs.FirstOrDefault(s => s.Id == id);
+     var song = Songs.FirstOrDefault(s => s.Id == id);
      if (song == null)
      {
          return NotFound("Sorry, the song you were looking for could not be found. Try again, perhaps?");
      }
 
-     song.VoteIncrease();
+     song.VoteIncrement();
 
      return Ok(song);
  }
@@ -129,5 +131,54 @@ public IActionResult SongRanking(int id)
 
     return Ok(rankedSongs);
 }
+    public class Playlist
+    {
+        public int Id { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public string CreatedBy { get; set; } = string.Empty;
+        public bool IsCollaborative { get; set; }
+        public List<Song> Songs = new();
+    }
+    public class Song
+    {
+        public int Id { get; set; }
+        public string Title { get; set; } = string.Empty;
+        public string Artist { get; set; } = string.Empty;
+        public int Votes { get; set; }
+        public List<Song> Songs { get; set; } = new();
+
+        public void VoteIncrement()
+        {
+            Votes++;
+        }
+
+    }
     
+    public class NewPlaylistRequest
+    {
+        public string Name { get; set; } = string.Empty;
+        public string CreatedBy { get; set; } = string.Empty;
+        public bool IsCollaborative { get; set; }
+    }
+
+    public class AddSongRequest
+    {
+        public int SongId { get; set; }
+    }
+
+    public class InviteCollaboratorRequest
+    {
+        public string UserId { get; set; } = string.Empty;
+        public List<string> Collaborators { get; set; } = new();
+    }
+
+    public class VoteSongRequest
+    {
+        public int SongId { get; set; }
+    }
+
+    public class CollaborativePlaylist : Playlist
+    {
+        public List<string> Collaborators { get; set; } = new();
+    }
 }
