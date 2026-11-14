@@ -3,6 +3,16 @@ namespace VibeHive.WinForms.Modules;
 // Owner: TheKeybladeofSolace — Playlist creation, songs, collaborators, voting, and rankings.
 public class PlaylistsControl : UserControl
 {
+    private ListBox listBoxPlaylists;
+    private TextBox textBoxName;
+    private System.Windows.Forms.Timer refreshTheTimer;
+    private HttpClient CLient;
+    private ListBox listBoxOfSongs;
+    private TextBox textBoxMaker;
+    private CheckBox checkBoxCollaborator;
+    private Button buttonMake;
+    private Button buttonVoteSong;
+    
     public PlaylistsControl()
     {
         Controls.Add(new Label
@@ -15,7 +25,7 @@ public class PlaylistsControl : UserControl
         
     }
 
-    private void InitializeComponent()
+    private void InitializeComponentLayout()
     {
         this.SuspendLayout();
 
@@ -32,7 +42,7 @@ public class PlaylistsControl : UserControl
         textBoxName.Width = 190;
 
         textBoxMaker = new TextBox();
-        textBoxMaker.Loacation = new Point(10, 260);
+        textBoxMaker.Location = new Point(10, 260);
         textBoxMaker.Width = 190;
 
         checkBoxCollaborator = new CheckBox();
