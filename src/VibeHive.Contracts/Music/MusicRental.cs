@@ -1,5 +1,6 @@
 namespace VibeHive.Contracts;
 
+// Created by Wilber Amaya-Maurisio
 public class MusicRental
 {
     public int Id { get; set; }
