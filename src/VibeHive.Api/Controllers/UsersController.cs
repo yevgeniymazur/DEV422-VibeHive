@@ -1,5 +1,9 @@
+
 // Yevgeniy Mazur
 // User registration and account details.
+// Updated 11/15/2026
+// Added an administrator-only user list endpoint to support
+// customer selection in the Music Rental module.
 
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
@@ -75,6 +79,24 @@ public class UsersController(EventStore store) : ControllerBase
                 return NotFound("User not found.");
 
             return Ok(account.User);
+        }
+    }
+
+    // GET /api/users
+    // Allows administrators to select registered customers
+    // when managing music rentals.
+    [Authorize(Roles = UserRoles.Admin)]
+    [HttpGet]
+    public ActionResult<IEnumerable<UserDto>> GetUsers()
+    {
+        lock (store.Gate)
+        {
+            var users = store.Users
+                .Select(account => account.User)
+                .OrderBy(user => user.Name)
+                .ToList();
+
+            return Ok(users);
         }
     }
 }

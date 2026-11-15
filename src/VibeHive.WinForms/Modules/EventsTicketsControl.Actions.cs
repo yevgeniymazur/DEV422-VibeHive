@@ -219,6 +219,24 @@ public partial class EventsTicketsControl
         });
     }
 
+    public async Task RefreshAccountAsync()
+    {
+        bookingView = "mine";
+        bookingEventId = null;
+        ticketsGrid.DataSource = null;
+
+        UpdateAccount();
+
+        await Run(async () =>
+        {
+            await RefreshEvents();
+            await RefreshBookings();
+
+            statusLabel.Text = client.Session is null
+                ? "Signed out."
+                : "Signed in successfully.";
+        });
+    }
     private void UpdateAccount()
     {
         var user = client.Session?.User;

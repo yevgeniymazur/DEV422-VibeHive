@@ -1,15 +1,17 @@
 // Yevgeniy Mazur
 // Events and tickets screen.
 
+using System.Diagnostics;
 using VibeHive.Contracts;
 using VibeHive.WinForms.Services;
 using VibeHive.WinForms.UI;
 
 namespace VibeHive.WinForms.Modules;
 
+//[DebuggerDisplay($"{{{nameof(GetDebuggerDisplay)}(),nq}}")]
 public partial class EventsTicketsControl : UserControl
 {
-    private readonly EventsClient client = new();
+    private readonly EventsClient client;
 
     private readonly Label accountLabel =
         DarkTheme.Label("Browsing as guest");
@@ -94,8 +96,10 @@ public partial class EventsTicketsControl : UserControl
     private bool busy;
     private bool updatingView;
 
-    public EventsTicketsControl()
+    public EventsTicketsControl(EventsClient sharedClient)
     {
+        client = sharedClient;
+
         Dock = DockStyle.Fill;
         AutoScaleMode = AutoScaleMode.Dpi;
 
@@ -120,7 +124,7 @@ public partial class EventsTicketsControl : UserControl
             logoutButton);
 
         layout.Controls.Add(heading, 0, 0);
-        layout.Controls.Add(accountBar, 0, 1);
+        //layout.Controls.Add(accountBar, 0, 1);
         layout.Controls.Add(pages, 0, 2);
         layout.Controls.Add(statusLabel, 0, 3);
 
@@ -293,11 +297,4 @@ public partial class EventsTicketsControl : UserControl
         return panel;
     }
 
-    protected override void Dispose(bool disposing)
-    {
-        if (disposing)
-            client.Dispose();
-
-        base.Dispose(disposing);
-    }
 }
