@@ -26,6 +26,7 @@ public class MainForm : Form
 
     private readonly Button logoutButton =
         DarkTheme.Button("Sign out");
+    private readonly PlaylistsControl playlists;
 
     public MainForm()
     {
@@ -103,7 +104,7 @@ public class MainForm : Form
         AddTab(tabs, "Events & Tickets", eventsControl);
 
         // Collaborative Playlists
-        var playlists = new PlaylistsControl();
+        playlists = new PlaylistsControl(client);
 
         DarkTheme.Apply(playlists);
 
@@ -167,7 +168,8 @@ public class MainForm : Form
         {
             await Task.WhenAll(
                 musicRental.RefreshAccountAsync(),
-                eventsControl.RefreshAccountAsync());
+                eventsControl.RefreshAccountAsync(),
+                playlists.RefreshAccountAsync());
         }
         finally
         {
