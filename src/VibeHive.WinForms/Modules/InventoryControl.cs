@@ -5,6 +5,7 @@ namespace VibeHive.WinForms.Modules;
 // Owner: TheKeybladeofSolace — Album CRUD through the gRPC inventory service.
 public class InventoryControl : UserControl
 {
+    private readonly List<MusicAlbum> musicAlbums = new();
         
     private TextBox textId;
     private TextBox textTitle;
@@ -112,6 +113,8 @@ public class InventoryControl : UserControl
         btnGet.Click += btnGet_Click;
         btnList.Click += btnList_Click;
     }
+
+    
     private void btnAdd_Click(object? sender, EventArgs e)
     {
         var album = new MusicAlbum
@@ -123,6 +126,9 @@ public class InventoryControl : UserControl
             Year = int.Parse(textYear.Text),
             Available = chkAvailable.Checked
         };
+        musicAlbums.Add(album);
+
+        MessageBox.Show("Album addition successful!");
     }
     private void  btnDelete_Click(object? sender, EventArgs e)
     {
@@ -130,37 +136,67 @@ public class InventoryControl : UserControl
         {
             Id = int.Parse(textId.Text)
         };
+        musicAlbums.Remove(album);
 
         MessageBox.Show($"Deletion of Albun ID {album.Id} was a success!");
     }
 
     private void btnUpdate_Click(object? sender, EventArgs e)
     {
-        var album = new MusicAlbum
+        int id = int.Parse(textId.Text);
+
+        var album = musicAlbums.FirstOrDefault(x => x.Id == id);
+
+        if (album == null)
         {
-            Id = int.Parse(textId.Text),
-            Title = textTitle.Text,
-            Artist = textArtist.Text,
-            Genre = textGenre.Text,
-            Available = chkAvailable.Checked
-        };
+            MessageBox.Show("Sorry, we could not find that album.");
+            return;
+        }
+
+        album.Title = textTitle.Text;
+        album.Artist = textArtist.Text;
+        album.Genre = textGenre.Text;
+        album.Year = int.Parse(textYear.Text);
+        album.Available = chkAvailable.Checked;
+
+        MessageBox.Show("Album update successful!");
     }
 
     private void btnGet_Click(object? sender, EventArgs e)
     {
-        var album = new MusicAlbum
+        int id = int.Parse(textId.Text);
+
+
+        var album = musicAlbums.FirstOrDefault(m => m.Id == id);
+
+        if (album == null)
         {
-            Id = int.Parse(textId.Text),
-            Title = "Title",
-            Artist = "Who is This?",
-            Genre = "What Genre?",
-            Year = int.Parse(textYear.Text),
-            Available = chkAvailable.Checked
-        };
+            MessageBox.Show("Sorry, we could not find that album.");
+            return;
+        }
+
+        textTitle.Text = album.Title;
+        textArtist.Text = album.Artist;
+        textGenre.Text = album.Genre;
+        textYear.Text = album.Year.ToString();
+        chkAvailable.Checked = album.Available;
     }
     
     private void btnList_Click(object? sender, EventArgs e)
     {
-        MessageBox.Show("List albums not implemented right now.");
+        if (musicAlbums.Count == 0) 
+        {
+            MessageBox.Show("No albums present.");
+            return;
+        }
+
+        string message = "";
+
+        foreach (var album in musicAlbums)
+        {
+            message += $"{album.Id} - {album.Title} - {album.Artist}\n";
+        }
+
+        MessageBox.Show(message);
     }
 }
