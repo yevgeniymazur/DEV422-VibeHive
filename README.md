@@ -1,147 +1,272 @@
-# VibeHive
+VibeHive:
 
 Updated by Yevgeniy Mazur
-November 15, 2026, at 4:21 PM PST
+November 15, 2026
 
-VibeHive is our DEV422 midterm project built with C# and .NET 8. It combines Music Rental, Collaborative Playlists, and Events & Ticketing in one Windows Forms application using an ASP.NET Core REST API.
+Project overview:
 
-Project scope:
+- VibeHive is our DEV422 midterm project built with C# and .NET 8.
+- One Windows Forms application brings together Music Rental, Collaborative Playlists, and Events & Ticketing.
+- The desktop application connects to an ASP.NET Core REST API.
+- The team selected three of the four components.
+- Album Inventory gRPC remains in the solution, but its tab is hidden and it is not part of the current demonstration.
 
-The team chose three of the four components and decided to leave out Album Inventory gRPC. The gRPC project, protocol definition, and service scaffold are included in the solution, but the service methods are not implemented. Its tab is commented out and hidden from the application.
+Team contributions:
 
-Events & Ticketing and Music Rental are integrated and working. Playlists has an initial interface and API implementation, but still needs work before it can be demonstrated as a complete module.
+- Yevgeniy Mazur: Events & Ticketing, registration, JWT authentication, shared login, role permissions, application integration, and fixes connecting the Playlist interface to its API.
+- Wilber Amaya-Maurisio: Music Rental interface and REST implementation, plus integration testing.
+- Brooks Halliday: Initial Playlist interface and API implementation, plus Album Inventory scaffold and development.
 
-Login and registration:
+Requirements:
 
-Users register and sign in through the account window at the top of the application. Registration includes User, Event Manager, and Admin roles for demonstration purposes.
+- Windows.
+- Visual Studio 2022.
+- .NET 8 SDK.
+- .NET desktop development workload.
+- ASP.NET and web development workload.
 
-The signed-in account stays active when moving between all three tabs. Events & Ticketing and Music Rental use the same login session. The Playlist tab does not sign the user out, but it still needs to be connected to the shared account.
+Running the application:
 
-The account’s role stays the same across tabs. Each module shows the controls and allows the actions available to that role.
-- Users can book tickets, manage their own bookings, and rent or return albums.
-- Event Managers can also submit event requests, respond to proposed changes, and view bookings for their events.
-- Admins have management access throughout Events & Ticketing and Music Rental. Playlist permissions still need to be implemented.
-Signing out clears the session and refreshes the connected modules. Passwords are hashed, and login tokens expire after one hour. Role selection during registration is included for the classroom demonstration.
+- Clone the repository and open VibeHive.sln.
+- Restore NuGet packages.
+- Build the solution.
+- Open the solution's startup project settings.
+- Set VibeHive.Api and VibeHive.WinForms to Start.
+- Press F5.
+- The REST API runs at http://localhost:5080.
+- The health endpoint is http://localhost:5080/health.
+- The Inventory service is not required for the three visible modules.
+
+Registration and shared login:
+
+- Use Sign in / Register at the top of the application.
+- Registration supports User, Event Manager, and Admin accounts.
+- Role selection is included for classroom demonstrations. A production application would restrict privileged account creation.
+- Events & Ticketing, Music Rental, and Playlists share the same signed-in account.
+- Users can switch tabs without signing in again.
+- The account's role stays the same across tabs. Each module enables the actions permitted for that account.
+- The API also checks permissions before allowing protected actions.
+- Signing out clears the shared session and account-specific information in the connected modules.
+- Passwords are hashed.
+- JWT sessions expire after one hour. Sign out and sign in again if a session expires.
+
+User permissions:
+
+- Browse approved upcoming events.
+- Book tickets and view or cancel personal bookings.
+- Browse albums, rent available albums, and return personal rentals.
+- Create playlists and access playlists they own or have been invited to.
+- Add songs to accessible playlists.
+- Vote on songs in accessible collaborative playlists.
+- Rename or delete their own playlists.
+- Invite registered users to their own collaborative playlists.
+
+Event Manager permissions:
+
+- All regular User features.
+- Submit event requests with one or more sessions.
+- Review and accept or decline proposed schedule changes.
+- View bookings for their events.
+- Rent and return albums under their own account.
+- Use Playlists with the same permissions as a regular User.
+
+Admin permissions:
+
+- Review all event requests.
+- Approve or reject requests.
+- Propose changes to dates, times, and capacities.
+- View all ticket bookings, cancel bookings, and adjust quantities.
+- Add and delete albums, subject to active rental restrictions.
+- View all active rentals and manage rentals for registered customers.
+- View and manage all playlists.
+- Add songs, invite collaborators, and vote on collaborative playlists.
+- Event schedule proposals must still be accepted by the account that submitted the request.
 
 Events & Ticketing:
 
-The module is designed to scale to additional venues and events. For this proof of concept, we use five venues in the Seattle and Tacoma area. This keeps venue selection simple and makes the workflow easier to demonstrate.
-Venue	Maximum tickets per session
-The Crocodile	750
-The Showbox	1,100
-Showbox SoDo	1,800
-WAMU Theater	9,000
-Tacoma Dome	22,000
+- Supports event requests, Admin review, schedule proposals, and ticket bookings.
+- Uses five venues around Seattle and Tacoma to keep the interface simple for the demonstration and proof of concept.
+- The venue catalog can be expanded later.
+- Each session has its own schedule and ticket capacity.
 
+Venues:
 
-These are the limits configured in the application. Each session can use a lower capacity.
+- The Crocodile: 750 tickets per session.
+- The Showbox: 1,100 tickets per session.
+- Showbox SoDo: 1,800 tickets per session.
+- WAMU Theater: 9,000 tickets per session.
+- Tacoma Dome: 22,000 tickets per session.
+- These are the limits configured in the application. Each session can use a lower capacity.
 
-Event Managers submit an event name, genre, venue, and schedule. An event can have multiple sessions, each with its own date, start time, end time, and capacity.
+Event requests:
 
-Admins review pending requests and can approve, reject, or propose changes. If an Admin proposes different dates, times, or capacities, the requesting manager must accept those changes before the event is approved. Declining a proposal returns the request to pending review.
+- Event Managers enter an event name, genre, venue, and one or more sessions.
+- Each session has its own date, start time, end time, and capacity.
+- Sessions must start in the future.
+- End times must be after start times.
+- Capacity must stay within the selected venue's limit.
+- An event supports up to 31 sessions.
+- Sessions within the same event cannot overlap.
 
-Multiple pending requests can use the same venue and time. The application checks for conflicts with approved events before granting final approval, including when a manager accepts a proposal.
+Approval and proposed changes:
 
-Guests can browse approved upcoming events. Signed-in users can book 1 to 10 tickets at a time for a selected session, depending on availability. Cancelling a booking before the session starts returns those tickets to availability.
+- The manager submits a request with Pending status.
+- The Admin selects All event requests to review it.
+- The Admin can approve, reject, or propose changes.
+- A proposal changes the status to Awaiting Manager Confirmation.
+- The requesting manager reviews the proposed schedule and Admin note.
+- Accepting applies the proposed schedule and approves the event.
+- Declining returns the request to Pending for another review.
+- Pending requests do not reserve a venue.
+- Multiple pending requests can overlap.
+- Final approval checks for conflicts with approved events at the same venue.
+- Availability is checked again when a manager accepts a proposal.
 
-Users see their own bookings. Event Managers can view bookings for their events. Admins can view all bookings, cancel them, and adjust ticket quantities without exceeding capacity.
+Session editor:
 
-The schedule editor lets managers and Admins add dates, update one or all sessions, and remove sessions. Changes to time or capacity fields must be applied to the session table before submitting.
+- Add dates creates a session for each date in the selected range.
+- Update selected applies the entered time and capacity to the selected session.
+- Update all applies the entered time and capacity to every session.
+- Remove selected removes a session.
+- Clear dates removes all sessions from the editor.
+- Changing an input field alone does not update sessions already listed.
+- Apply the change and review the session table before submitting.
+
+Ticket bookings:
+
+- Guests can browse approved upcoming events.
+- Signed-in accounts, including Managers and Admins, can book tickets.
+- Bookings apply to a specific session.
+- Each booking allows 1 to 10 tickets, subject to availability.
+- Availability is tracked separately for each session.
+- Capacity checks prevent overselling.
+- Users can view and cancel their own bookings.
+- Cancelling restores the tickets to availability.
+- Event Managers can view bookings for their events.
+- Admins can view all bookings, cancel bookings, and adjust quantities.
+- Bookings cannot be cancelled or adjusted after the session starts.
+- Booking statuses are Booked and Cancelled.
 
 Music Rental:
 
-Anyone can browse the album catalog. Admins can add albums with a title, artist, genre, release year, and availability setting. Albums with active rentals cannot be deleted.
-
-Signed-in users can rent an available album under their account. The album becomes unavailable until it is returned. Users can view and return only their own active rentals.
-
-Admins can view all active rentals, select a registered customer when renting an album, and process returns for any customer.
-
-Music Rental uses the shared login. Switching accounts refreshes the rental list and controls for the new user.
+- Anyone can browse the album catalog.
+- Admins can add albums with a title, artist, genre, release year, and availability setting.
+- Admins can delete albums that do not have active rentals.
+- Signed-in users select an available album and rent it under their account.
+- Renting makes the album unavailable until it is returned.
+- Users see and return only their own active rentals.
+- Admins can view all active rentals.
+- Admins can select a registered customer when creating a rental.
+- Admins can process returns for any customer.
+- Switching accounts refreshes the rental information and controls for the new account.
 
 Collaborative Playlists:
 
-The current Playlist tab contains the initial layout, including playlist and song lists, text fields, a collaborative option, and creation and voting buttons.
+- The Playlist interface connects to the REST API and uses the shared login.
+- Users see playlists they own or have been invited to.
+- Admins can see all playlists.
+- The signed-in account determines ownership.
+- Users do not manually enter a creator's identity.
 
-The API contains initial endpoints for creating and retrieving playlists, adding songs, inviting collaborators, voting, and viewing rankings. The module still needs:
-- Button actions and API connections in the desktop interface.
-- Playlist and song loading.
-- A working song source.
-- Fixes to collaborator creation and voting logic.
-- Shared login and permission integration.
-- Testing of the complete workflow.
-The Playlist module is included, but it is not currently finished.
+Creating and managing playlists:
 
-Data and current limitations:
+- Sign in and open Playlists.
+- Enter a playlist name.
+- Select Collaborative if invitations and voting are needed.
+- Click Create Playlist.
+- Select the playlist in the list.
+- To rename it, enter the new name in the playlist name field and click Rename.
+- Only the owner or an Admin can rename or delete a playlist.
 
-Application data is stored in memory and resets when the API restarts. Keep the API running while switching accounts during the demonstration.
+Adding songs:
 
-Ticket bookings track general admission quantities. Payment processing and individual seat selection are not included. Changes to approved event schedules are not currently supported.
+- Select a playlist.
+- Enter a song title and artist.
+- Click Add song.
+- Owners, invited collaborators, and Admins can add songs.
+- The API rejects duplicate title and artist combinations within the same playlist.
 
-Album Inventory gRPC remains scaffolded but unimplemented, and Collaborative Playlists still needs the work listed above.
-DEV422 team midterm: one Windows Forms desktop app with REST and gRPC services.
-This is a starter skeleton, not a completed assignment. No login, JWT, playlist,
-event, ticket, or inventory operations are implemented yet.
+Inviting collaborators:
 
-## Module ownership
+- The collaborator must register an account while the same API instance is running.
+- Select a collaborative playlist.
+- Enter the collaborator's registered email.
+- Click Invite user.
+- Only the owner or an Admin can invite collaborators.
+- Non-collaborative playlists do not accept invitations.
 
-| Area | Owner | Starting files |
-| --- | --- | --- |
-| Events & Ticketing, registration, login, JWT, roles | Eugene Mazur | API Auth/Users/Events/Tickets controllers; EventsTicketsControl.cs |
-| Collaborative Playlist Builder | TheKeybladeofSolace | PlaylistsController.cs; PlaylistsControl.cs |
-| Music Rental Management | Wilber Amaya-Maurisio | MusicAlbum.cs; MusicRental.cs; MusicStore.cs: MusicController.cs; RentalController.cs |
-| Album Inventory gRPC | Eugene Mazur, Wilber Amaya-Maurisio, TheKeybladeofSolace | VibeHive.Inventory; InventoryControl.cs |
+Voting and rankings:
 
+- Select a song in a collaborative playlist.
+- Click Vote for selected song.
+- Each account can vote once per song in each playlist.
+- Songs appear in descending vote order.
+- Song titles are used to sort ties.
+- Playlist data refreshes every five seconds while the tab is visible.
+- Refresh also reloads the list manually.
 
-Ownership reflects the current plan, All three members must contribute and appear in the video.
+Album Inventory gRPC:
 
+- The solution includes an Inventory project, protocol definition, and service code.
+- The team omitted this component from the current three-module demonstration.
+- Its tab remains hidden.
+- Music Rental manages its own album catalog through REST.
+- Music Rental does not use the separate Inventory service.
 
-## Open and run on Windows
+Testing Events & Ticketing:
 
-1. Install Visual Studio 2022 with **.NET desktop development**, **ASP.NET and web development**, and the **.NET 8 SDK**.
-2. Clone this repository and open **VibeHive.sln**.
-3. Restore NuGet packages and build the solution.
-4. For the gRPC HTTPS endpoint, run `dotnet dev-certs https --trust` once.
-5. In solution properties, set multiple startup projects: **VibeHive.Api**, **VibeHive.Inventory**, and **VibeHive.WinForms** to Start.
-6. Press F5. The desktop app currently shows three placeholder tabs.
+- Keep the API running while switching accounts.
+- Register an Event Manager and submit an event request.
+- Register an Admin and open All event requests.
+- Propose a time or capacity change.
+- Sign in as the requesting manager and accept the proposal.
+- Book tickets and confirm that availability decreases.
+- Cancel the booking and confirm that availability increases.
+- Check that an overlapping request cannot receive approval at the same venue.
 
-Alternatively, start each project in a separate terminal:
+Testing Music Rental:
 
-```powershell
-dotnet run --project src/VibeHive.Api
-dotnet run --project src/VibeHive.Inventory
-dotnet run --project src/VibeHive.WinForms
-```
+- As Admin, add an available album.
+- Sign in as a User and rent it.
+- Confirm that the album becomes unavailable.
+- Return it and confirm that availability is restored.
+- As Admin, verify access to customer selection and all active rentals.
 
-The REST health endpoint is http://localhost:5080/health.
-The gRPC service uses https://localhost:7081; its CRUD methods currently return
-Unimplemented. WinForms does not call the services yet.
+Testing Playlists:
 
-## Project layout
+- Register two accounts.
+- Create a collaborative playlist under the first account.
+- Add songs and vote.
+- Try voting for the same song again and confirm that it is rejected.
+- Invite the second account by email.
+- Sign in as the second account and confirm access.
+- Add a song and vote as the collaborator.
+- Verify that the collaborator cannot rename or delete the playlist.
+- Sign in as Admin and confirm access to all playlists.
 
-- `src/VibeHive.WinForms`: shared desktop shell and independent module controls.
-- `src/VibeHive.Api`: REST API controller placeholders for authentication, events, tickets, and playlists.
-- `src/VibeHive.Inventory`: gRPC host, album proto contract, and service placeholder.
-- `src/VibeHive.Contracts`: shared REST DTO/client configuration location. Add agreed DTOs here; gRPC messages are generated from the proto.
+Data and limitations:
 
-## Working together
+- Application data is stored in memory and resets when the API restarts.
+- Accounts must be registered again after an API restart.
+- JWT sessions expire after one hour.
+- Registration allows role selection for classroom demonstrations.
+- Ticket bookings use general admission quantities.
+- Payment processing and assigned seating are not included.
+- Schedule proposals apply to requests awaiting approval, not already approved events.
+- Playlist refresh uses polling rather than an immediate server push.
+- Album Inventory is separate from Music Rental and remains outside the current demonstration.
 
-- Pull the latest main before beginning work.
-- Create a branch for your changes, such as `eugene/events`, `key/playlists`, or `key/inventory`.
-- Work in your module files, commit, push, and open a pull request into main.
-- Coordinate changes to MainForm, shared contracts, and albums.proto before editing them.
-- Add API clients in your module or a shared Services folder; avoid putting HTTP/gRPC calls in MainForm.
-- Keep passwords, signing keys, tokens, and local databases out of Git. Use .NET user secrets for API secrets.
-- Coordinate shared user IDs and authentication before integrating playlist invitations and voting.
+Project structure:
 
-## First implementation tasks
+- src/VibeHive.WinForms: Desktop interface, shared login, theme, and module controls.
+- src/VibeHive.Api: REST endpoints for accounts, events, tickets, music rentals, and playlists.
+- src/VibeHive.Contracts: Shared models, roles, venue catalog, and service addresses.
+- src/VibeHive.Inventory: Separate gRPC inventory project, excluded from the current demonstration.
 
-- Eugene: user models, registration, password hashing, login/JWT, authorization, events/tickets, and matching WinForms screens.
-- TheKeybladeofSolace: playlist models and Command Pattern, REST endpoints, voting refresh, and matching screen.
-- TheKeybladeofSolace: gRPC album CRUD, validation/errors, inventory client, and matching screen. ListAlbums is server streaming; add bidirectional updates if the team chooses that enhancement.
-- Wilber Amaya-Maurisio: music rental module, with album and rental models, REST endpoints (`/api/music`, `/api/rentals`) with input validation, and a matching WinForms screen built as a UserControl so it can be hosted in the shared main window.
-- Team: shared data contracts (such as passing the logged-in user's ID and name from login into the music rental screen), API ports, persistence, and integration. Shared responsibility over album inventory microservices.
+Verification:
 
-## Build verification
-
-A Windows GitHub Actions workflow restores and builds all four projects on pushes
-and pull requests. It does not exercise desktop interactions or implemented features.
+- The application builds and opens on Windows.
+- The team has manually tested the integrated application.
+- The GitHub Actions workflow restores and builds the solution.
+- Build checks do not replace testing the application workflows.
+- The existing tests/events_smoke.py targets the earlier Organizer-based implementation and does not validate the current role and approval workflow.

@@ -1,28 +1,44 @@
+
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using VibeHive.Api.Music;
 using VibeHive.Contracts;
 
 namespace VibeHive.Api.Controllers;
+
 // Created by Wilber Amaya-Maurisio
+// Updated by Yevgeniy Mazur - 11/15/2026
+// Integrated role-based authorization for album management.
+// Restricted adding and deleting albums to administrators.
+// Album browsing remains available to all users and guests.
 
 [ApiController]
 [Route("api/music")]
 public class MusicController : ControllerBase
 {
-    // GET /api/music 
+    // GET /api/music
     // GET /api/music?all=true
-    // Shows all albums
-    public ActionResult<IEnumerable<MusicAlbum>> GetAlbums([FromQuery] bool all = false)
+    // Shows all albums.
+    [AllowAnonymous]
+    [HttpGet]
+    public ActionResult<IEnumerable<MusicAlbum>> GetAlbums(
+        [FromQuery] bool all = false)
     {
-        var albums = all ? MusicStore.Albums : MusicStore.Albums.Where(a => a.Available);
+        var albums = all
+            ? MusicStore.Albums
+            : MusicStore.Albums.Where(a => a.Available);
+
         return Ok(albums.OrderBy(a => a.Id));
     }
 
     // GET /api/music/{id}
+    [AllowAnonymous]
     [HttpGet("{id:int}")]
     public ActionResult<MusicAlbum> GetAlbum(int id)
     {
-        var album = MusicStore.Albums.FirstOrDefault(a => a.Id == id);
+        var album = MusicStore.Albums.FirstOrDefault(
+            a => a.Id == id);
+
         if (album == null)
             return NotFound($"Album with id {id} not found.");
 
@@ -30,28 +46,42 @@ public class MusicController : ControllerBase
     }
 
     // POST /api/music
-    // Add a new album
+    // Only administrators can add albums.
+    [Authorize(Roles = UserRoles.Admin)]
     [HttpPost]
     public ActionResult<MusicAlbum> AddAlbum(MusicAlbum album)
     {
         album.Id = MusicStore.NextAlbumId();
+
         MusicStore.Albums.Add(album);
-        return CreatedAtAction(nameof(GetAlbum), new { id = album.Id }, album);
+
+        return CreatedAtAction(
+            nameof(GetAlbum),
+            new { id = album.Id },
+            album);
     }
 
     // DELETE /api/music/{id}
+    // Only administrators can delete albums.
+    [Authorize(Roles = UserRoles.Admin)]
     [HttpDelete("{id:int}")]
     public IActionResult DeleteAlbum(int id)
     {
-        var album = MusicStore.Albums.FirstOrDefault(a => a.Id == id);
+        var album = MusicStore.Albums.FirstOrDefault(
+            a => a.Id == id);
+
         if (album == null)
             return NotFound($"Album with id {id} not found.");
 
-        bool isRented = MusicStore.Rentals.Any(r => r.AlbumId == id && r.ReturnDate == null);
+        bool isRented = MusicStore.Rentals.Any(
+            r => r.AlbumId == id && r.ReturnDate == null);
+
         if (isRented)
-            return Conflict("This album is currently rented and cannot be deleted.");
+            return Conflict(
+                "This album is currently rented and cannot be deleted.");
 
         MusicStore.Albums.Remove(album);
+
         return NoContent();
     }
 }

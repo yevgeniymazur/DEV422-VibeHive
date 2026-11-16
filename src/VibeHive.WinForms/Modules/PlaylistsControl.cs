@@ -1,88 +1,187 @@
+// Original module: Brooks Halliday
+// Updated by Yevgeniy Mazur - November 15, 2026
+// Connected the existing playlist interface to the API and shared login.
+
+using System.Net.Http.Headers;
+using System.Net.Http.Json;
+using VibeHive.Contracts;
+using VibeHive.WinForms.Services;
+
 namespace VibeHive.WinForms.Modules;
 
-// Owner: TheKeybladeofSolace — Playlist creation, songs, collaborators, voting, and rankings.
 public class PlaylistsControl : UserControl
 {
-    private ListBox listBoxPlaylists;
-    private TextBox textBoxName;
-    private System.Windows.Forms.Timer refreshTheTimer;
-    private HttpClient CLient;
-    private ListBox listBoxOfSongs;
-    private TextBox textBoxMaker;
-    private CheckBox checkBoxCollaborator;
-    private Button buttonMake;
-    private Button buttonVoteSong;
-    private TextBox textBoxGenre;
-    private TextBox textBoxId;
-    private Button buttonDelete;
-    private Button buttonUpdate;
-    private ListBox listBoxCollaborators;
-    private Button buttonGet;
-    private CheckBox chkBoxCollaborative;
+    private ListBox listBoxPlaylists = null!;
+    private TextBox textBoxName = null!;
+    private System.Windows.Forms.Timer refreshTheTimer = null!;
+    private HttpClient CLient = null!;
+    private ListBox listBoxOfSongs = null!;
+    private TextBox textBoxMaker = null!;
+    private CheckBox checkBoxCollaborator = null!;
+    private Button buttonMake = null!;
+    private Button buttonVoteSong = null!;
+    private CheckBox chkBoxCollaborative = null!;
+    private TextBox textBoxGenre = null!;
+    private TextBox textBoxId = null!;
+    private Button buttonDelete = null!;
+    private Button buttonUpdate = null!;
+    private ListBox listBoxCollaborators = null!;
+    private Button buttonGet = null!;
 
+    private readonly EventsClient sharedClient;
 
-    public PlaylistsControl()
+    private readonly TextBox textSongArtist = new();
+    private readonly TextBox textInviteEmail = new();
+    private readonly Button buttonAddSong = new();
+    private readonly Button buttonInvite = new();
+    private readonly Label labelStatus = new();
+
+    private bool loadingPlaylists;
+    private bool performingAction;
+
+    private PlaylistData? SelectedPlaylist =>
+        listBoxPlaylists.SelectedItem as PlaylistData;
+
+    public PlaylistsControl(EventsClient client)
     {
+        sharedClient = client;
+
         InitializeComponent();
 
-        Controls.Add(new Label
+        CLient = new HttpClient
         {
-            Text = "Collaborative Playlists",
-            Dock = DockStyle.Fill,
-            TextAlign = ContentAlignment.MiddleCenter
-        });
-        // TODO: Build this module's screen and connect its service client.
+            BaseAddress = new Uri(ServiceAddresses.Api),
+            Timeout = TimeSpan.FromSeconds(15)
+        };
 
-        
-        
+        listBoxPlaylists.DisplayMember = nameof(PlaylistData.Name);
+        listBoxOfSongs.DisplayMember = nameof(SongData.Display);
+        listBoxCollaborators.DisplayMember =
+            nameof(CollaboratorData.Display);
 
+        listBoxPlaylists.SelectedIndexChanged += (_, _) =>
+        {
+            if (!loadingPlaylists)
+                DisplayPlaylist();
+        };
+        ForeColor = Color.White;
+        chkBoxCollaborative.ForeColor = Color.White;
 
+        foreach (var button in new[]
+        {
+    buttonMake,
+    buttonVoteSong,
+    buttonDelete,
+    buttonUpdate,
+    buttonGet,
+    buttonAddSong,
+    buttonInvite
+})
+        {
+            button.ForeColor = Color.White;
+            button.UseCompatibleTextRendering = true;
+        }
+        buttonMake.Click += async (_, _) =>
+            await RunActionAsync(
+                HttpMethod.Post,
+                "api/playlists",
+                new
+                {
+                    Name = textBoxMaker.Text.Trim(),
+                    IsCollaborative = chkBoxCollaborative.Checked
+                });
 
-    }
+        buttonGet.Click += async (_, _) =>
+            await LoadPlaylistsAsync();
 
-    private void InitializeComponentLayout()
-    {
-        this.SuspendLayout();
+        buttonUpdate.Click += async (_, _) =>
+        {
+            if (SelectedPlaylist is not { } playlist)
+                return;
 
-        listBoxPlaylists = new ListBox();
-        listBoxPlaylists.Location = new Point(10, 50);
-        listBoxPlaylists.Size = new Size(250, 200);
+            await RunActionAsync(
+                HttpMethod.Put,
+                $"api/playlists/{playlist.Id}",
+                new { Name = textBoxMaker.Text.Trim() });
+        };
 
-        listBoxOfSongs = new ListBox();
-        listBoxOfSongs.Location = new Point(260, 50);
-        listBoxOfSongs.Size = new Size(250, 150);
+        buttonDelete.Click += async (_, _) =>
+        {
+            if (SelectedPlaylist is not { } playlist)
+                return;
 
-        textBoxName = new TextBox();
-        textBoxName.Location = new Point(10, 270);
-        textBoxName.Width = 190;
+            if (MessageBox.Show(
+                    $"Delete '{playlist.Name}'?",
+                    "Delete playlist",
+                    MessageBoxButtons.YesNo,
+                    MessageBoxIcon.Question) != DialogResult.Yes)
+            {
+                return;
+            }
 
-        textBoxMaker = new TextBox();
-        textBoxMaker.Location = new Point(10, 260);
-        textBoxMaker.Width = 190;
+            await RunActionAsync(
+                HttpMethod.Delete,
+                $"api/playlists/{playlist.Id}");
+        };
 
-        checkBoxCollaborator = new CheckBox();
-        checkBoxCollaborator.Location = new Point(10, 320);
-        checkBoxCollaborator.Text = "Collaborative";
+        buttonAddSong.Click += async (_, _) =>
+        {
+            if (SelectedPlaylist is not { } playlist)
+                return;
 
-        buttonMake = new Button();
-        buttonMake.Location = new Point(10, 310);
-        buttonMake.Size = new Size(120, 40);
-        buttonMake.Text = "Make Playlist";
+            await RunActionAsync(
+                HttpMethod.Put,
+                $"api/playlists/{playlist.Id}/add",
+                new
+                {
+                    Title = textBoxGenre.Text.Trim(),
+                    Artist = textSongArtist.Text.Trim()
+                });
+        };
 
-        buttonVoteSong = new Button();
-        buttonVoteSong.Location = new Point(150, 360);
-        buttonVoteSong.Size = new Size(120, 40);
-        buttonVoteSong.Text = "Vote Song";
+        buttonInvite.Click += async (_, _) =>
+        {
+            if (SelectedPlaylist is not { } playlist)
+                return;
 
-        Controls.Add(listBoxPlaylists);
-        Controls.Add(listBoxOfSongs);
-        Controls.Add(textBoxName);
-        Controls.Add(textBoxMaker);
-        Controls.Add(checkBoxCollaborator);
-        Controls.Add(buttonMake);
-        Controls.Add(buttonVoteSong);
+            await RunActionAsync(
+                HttpMethod.Put,
+                $"api/playlists/{playlist.Id}/invite",
+                new { Email = textInviteEmail.Text.Trim() });
+        };
 
-        this.ResumeLayout();
+        buttonVoteSong.Click += async (_, _) =>
+        {
+            if (SelectedPlaylist is not { } playlist ||
+                listBoxOfSongs.SelectedItem is not SongData song)
+            {
+                return;
+            }
+
+            await RunActionAsync(
+                HttpMethod.Post,
+                $"api/playlists/{playlist.Id}/vote",
+                new { SongId = song.Id });
+        };
+
+        refreshTheTimer = new System.Windows.Forms.Timer
+        {
+            Interval = 5000
+        };
+
+        refreshTheTimer.Tick += async (_, _) =>
+        {
+            if (Visible && !performingAction)
+                await LoadPlaylistsAsync();
+        };
+
+        Load += async (_, _) =>
+        {
+            await RefreshAccountAsync();
+            refreshTheTimer.Start();
+        };
+
+        UpdatePlaylistPermissions();
     }
 
     private void InitializeComponent()
@@ -101,154 +200,447 @@ public class PlaylistsControl : UserControl
         buttonUpdate = new Button();
         listBoxCollaborators = new ListBox();
         buttonGet = new Button();
+
         SuspendLayout();
-        // 
-        // buttonMake
-        // 
-        buttonMake.Location = new Point(10, 350);
-        buttonMake.Name = "buttonMake";
-        buttonMake.Size = new Size(120, 40);
-        buttonMake.TabIndex = 0;
-        buttonMake.Text = "Create Playlist";
-        buttonMake.UseVisualStyleBackColor = true;
-        // 
-        // buttonVoteSong
-        // 
-        buttonVoteSong.Location = new Point(150, 360);
-        buttonVoteSong.Name = "buttonVoteSong";
-        buttonVoteSong.Size = new Size(120, 40);
-        buttonVoteSong.TabIndex = 1;
-        buttonVoteSong.Text = "Vote Song";
-        buttonVoteSong.UseVisualStyleBackColor = true;
-        // 
-        // chkBoxCollaborative
-        // 
-        chkBoxCollaborative.AutoSize = true;
-        chkBoxCollaborative.Location = new Point(10, 320);
-        chkBoxCollaborative.Name = "chkBoxCollaborative";
-        chkBoxCollaborative.Size = new Size(120, 24);
-        chkBoxCollaborative.TabIndex = 3;
-        chkBoxCollaborative.Text = "Collaborative";
-        chkBoxCollaborative.UseVisualStyleBackColor = true;
-        // 
-        // textBoxName
-        // 
-        textBoxName.Location = new Point(10, 145);
-        textBoxName.Name = "textBoxName";
-        textBoxName.Size = new Size(198, 27);
-        textBoxName.TabIndex = 4;
-        textBoxName.Text = "Created By:";
-        // 
-        // textBoxMaker
-        // 
-        textBoxMaker.Location = new Point(10, 110);
-        textBoxMaker.Name = "textBoxMaker";
-        textBoxMaker.Size = new Size(190, 27);
-        textBoxMaker.TabIndex = 5;
-        textBoxMaker.Text = "Playlist Name:";
-        // 
-        // listBoxPlaylists
-        // 
-        listBoxPlaylists.FormattingEnabled = true;
-        listBoxPlaylists.Location = new Point(219, 70);
-        listBoxPlaylists.Name = "listBoxPlaylists";
-        listBoxPlaylists.Size = new Size(250, 184);
-        listBoxPlaylists.TabIndex = 6;
-        // 
-        // listBoxOfSongs
-        // 
-        listBoxOfSongs.FormattingEnabled = true;
-        listBoxOfSongs.Location = new Point(475, 50);
-        listBoxOfSongs.Name = "listBoxOfSongs";
-        listBoxOfSongs.Size = new Size(207, 304);
-        listBoxOfSongs.TabIndex = 7;
-        // 
-        // checkBoxCollaborator
-        // 
-        checkBoxCollaborator.AutoSize = true;
-        checkBoxCollaborator.Location = new Point(343, 383);
-        checkBoxCollaborator.Name = "checkBoxCollaborator";
-        checkBoxCollaborator.Size = new Size(115, 24);
-        checkBoxCollaborator.TabIndex = 8;
-        checkBoxCollaborator.Text = "Collaborator";
-        checkBoxCollaborator.UseVisualStyleBackColor = true;
-        // 
-        // textBoxGenre
-        // 
-        textBoxGenre.Location = new Point(10, 175);
-        textBoxGenre.Name = "textBoxGenre";
-        textBoxGenre.Size = new Size(138, 27);
-        textBoxGenre.TabIndex = 9;
-        textBoxGenre.Text = "Genre:";
-        // 
-        // textBoxId
-        // 
+
+        AutoScroll = true;
+        AutoScrollMinSize = new Size(960, 510);
+
+        // Existing playlist controls.
         textBoxId.Location = new Point(10, 80);
         textBoxId.Name = "textBoxId";
-        textBoxId.Size = new Size(181, 27);
-        textBoxId.TabIndex = 10;
-        textBoxId.Text = "Playlist ID:";
-        // 
-        // buttonDelete
-        // 
-        buttonDelete.Location = new Point(283, 316);
-        buttonDelete.Name = "buttonDelete";
-        buttonDelete.Size = new Size(136, 32);
-        buttonDelete.TabIndex = 11;
-        buttonDelete.Text = "Delete";
-        buttonDelete.UseVisualStyleBackColor = true;
-        // 
-        // buttonUpdate
-        // 
-        buttonUpdate.Location = new Point(469, 418);
+        textBoxId.Size = new Size(190, 27);
+        textBoxId.ReadOnly = true;
+        textBoxId.PlaceholderText = "Selected playlist ID";
+
+        textBoxMaker.Location = new Point(10, 115);
+        textBoxMaker.Name = "textBoxMaker";
+        textBoxMaker.Size = new Size(190, 27);
+        textBoxMaker.PlaceholderText = "Playlist name";
+
+        textBoxName.Location = new Point(10, 150);
+        textBoxName.Name = "textBoxName";
+        textBoxName.Size = new Size(190, 27);
+        textBoxName.ReadOnly = true;
+        textBoxName.PlaceholderText = "Signed-in user";
+
+        // Reuse the existing genre field for song entry.
+        textBoxGenre.Location = new Point(10, 200);
+        textBoxGenre.Name = "textBoxGenre";
+        textBoxGenre.Size = new Size(190, 27);
+        textBoxGenre.PlaceholderText = "Song title";
+
+        textSongArtist.Location = new Point(10, 235);
+        textSongArtist.Name = "textSongArtist";
+        textSongArtist.Size = new Size(190, 27);
+        textSongArtist.PlaceholderText = "Song artist";
+
+        buttonAddSong.Location = new Point(10, 275);
+        buttonAddSong.Name = "buttonAddSong";
+        buttonAddSong.Size = new Size(190, 32);
+        buttonAddSong.Text = "Add song";
+
+        chkBoxCollaborative.Location = new Point(10, 320);
+        chkBoxCollaborative.Name = "chkBoxCollaborative";
+        chkBoxCollaborative.AutoSize = true;
+        chkBoxCollaborative.Text = "Collaborative";
+        chkBoxCollaborative.Checked = true;
+
+        buttonMake.Location = new Point(10, 355);
+        buttonMake.Name = "buttonMake";
+        buttonMake.Size = new Size(190, 36);
+        buttonMake.Text = "Create Playlist";
+
+        buttonUpdate.Location = new Point(10, 405);
         buttonUpdate.Name = "buttonUpdate";
-        buttonUpdate.Size = new Size(127, 33);
-        buttonUpdate.TabIndex = 12;
-        buttonUpdate.Text = "Update";
-        buttonUpdate.UseVisualStyleBackColor = true;
-        // 
-        // listBoxCollaborators
-        // 
-        listBoxCollaborators.FormattingEnabled = true;
-        listBoxCollaborators.Location = new Point(707, 51);
-        listBoxCollaborators.Name = "listBoxCollaborators";
-        listBoxCollaborators.Size = new Size(227, 304);
-        listBoxCollaborators.TabIndex = 13;
-        // 
-        // buttonGet
-        // 
-        buttonGet.Location = new Point(666, 410);
+        buttonUpdate.Size = new Size(90, 32);
+        buttonUpdate.Text = "Rename";
+
+        buttonDelete.Location = new Point(110, 405);
+        buttonDelete.Name = "buttonDelete";
+        buttonDelete.Size = new Size(90, 32);
+        buttonDelete.Text = "Delete";
+
+        // Existing playlist, song, and collaborator lists.
+        listBoxPlaylists.Location = new Point(219, 70);
+        listBoxPlaylists.Name = "listBoxPlaylists";
+        listBoxPlaylists.Size = new Size(250, 280);
+        listBoxPlaylists.HorizontalScrollbar = true;
+
+        buttonGet.Location = new Point(219, 365);
         buttonGet.Name = "buttonGet";
-        buttonGet.Size = new Size(166, 32);
-        buttonGet.TabIndex = 14;
-        buttonGet.Text = "Get";
-        buttonGet.UseVisualStyleBackColor = true;
-        // 
-        // PlaylistsControl
-        // 
-        Controls.Add(buttonGet);
-        Controls.Add(listBoxCollaborators);
-        Controls.Add(checkBoxCollaborator);
-        Controls.Add(listBoxOfSongs);
-        Controls.Add(listBoxPlaylists);
-        Controls.Add(textBoxMaker);
-        Controls.Add(textBoxName);
-        Controls.Add(chkBoxCollaborative);
-        Controls.Add(buttonVoteSong);
-        Controls.Add(buttonMake);
-        Controls.Add(buttonDelete);
-        Controls.Add(buttonUpdate);
-        Controls.Add(textBoxId);
-        Controls.Add(textBoxGenre);
+        buttonGet.Size = new Size(120, 32);
+        buttonGet.Text = "Refresh";
+
+        listBoxOfSongs.Location = new Point(485, 70);
+        listBoxOfSongs.Name = "listBoxOfSongs";
+        listBoxOfSongs.Size = new Size(207, 280);
+        listBoxOfSongs.HorizontalScrollbar = true;
+
+        buttonVoteSong.Location = new Point(485, 365);
+        buttonVoteSong.Name = "buttonVoteSong";
+        buttonVoteSong.Size = new Size(207, 36);
+        buttonVoteSong.Text = "Vote for selected song";
+
+        listBoxCollaborators.Location = new Point(707, 70);
+        listBoxCollaborators.Name = "listBoxCollaborators";
+        listBoxCollaborators.Size = new Size(227, 280);
+        listBoxCollaborators.HorizontalScrollbar = true;
+
+        // Preserve the existing unused checkbox.
+        checkBoxCollaborator.Name = "checkBoxCollaborator";
+        checkBoxCollaborator.Text = "Collaborator";
+        checkBoxCollaborator.Visible = false;
+
+        textInviteEmail.Location = new Point(707, 365);
+        textInviteEmail.Name = "textInviteEmail";
+        textInviteEmail.Size = new Size(227, 27);
+        textInviteEmail.PlaceholderText = "Registered user's email";
+
+        buttonInvite.Location = new Point(707, 405);
+        buttonInvite.Name = "buttonInvite";
+        buttonInvite.Size = new Size(227, 32);
+        buttonInvite.Text = "Invite user";
+
+        labelStatus.Location = new Point(10, 465);
+        labelStatus.Name = "labelStatus";
+        labelStatus.Size = new Size(925, 45);
+        labelStatus.Text = "Sign in to use playlists.";
+
+        var labelPlaylists = new Label
+        {
+            Text = "Playlists",
+            AutoSize = true,
+            Location = new Point(219, 40)
+        };
+
+        var labelSongs = new Label
+        {
+            Text = "Songs and rankings",
+            AutoSize = true,
+            Location = new Point(485, 40)
+        };
+
+        var labelCollaborators = new Label
+        {
+            Text = "Collaborators",
+            AutoSize = true,
+            Location = new Point(707, 40)
+        };
+
+        Controls.AddRange(new Control[]
+        {
+            textBoxId,
+            textBoxMaker,
+            textBoxName,
+            textBoxGenre,
+            textSongArtist,
+            buttonAddSong,
+            chkBoxCollaborative,
+            buttonMake,
+            buttonUpdate,
+            buttonDelete,
+            listBoxPlaylists,
+            buttonGet,
+            listBoxOfSongs,
+            buttonVoteSong,
+            listBoxCollaborators,
+            checkBoxCollaborator,
+            textInviteEmail,
+            buttonInvite,
+            labelStatus,
+            labelPlaylists,
+            labelSongs,
+            labelCollaborators
+        });
+
         Name = "PlaylistsControl";
-        Size = new Size(1066, 514);
+        Size = new Size(1066, 540);
+
         ResumeLayout(false);
         PerformLayout();
-
-        //
-        // CheckBoxCollaborator
-        //
-
     }
 
+    public async Task RefreshAccountAsync()
+    {
+        listBoxPlaylists.DataSource = null;
+        listBoxOfSongs.DataSource = null;
+        listBoxCollaborators.DataSource = null;
+
+        textBoxId.Clear();
+        textBoxMaker.Clear();
+        textBoxGenre.Clear();
+        textSongArtist.Clear();
+        textInviteEmail.Clear();
+
+        textBoxName.Text = sharedClient.Session?.User.Name ?? "";
+
+        UpdatePlaylistPermissions();
+        await LoadPlaylistsAsync();
+    }
+
+    private async Task LoadPlaylistsAsync()
+    {
+        if (loadingPlaylists || IsDisposed ||
+            sharedClient.Session is null)
+        {
+            return;
+        }
+
+        var session = sharedClient.Session;
+        var selectedId = SelectedPlaylist?.Id;
+        var selectedSongId =
+            (listBoxOfSongs.SelectedItem as SongData)?.Id;
+
+        loadingPlaylists = true;
+
+        try
+        {
+            using var request = MakeRequest(
+                HttpMethod.Get,
+                "api/playlists");
+
+            using var response = await CLient.SendAsync(request);
+            await CheckResponseAsync(response);
+
+            var playlists = await response.Content
+                .ReadFromJsonAsync<List<PlaylistData>>() ?? new();
+
+            if (!ReferenceEquals(session, sharedClient.Session) ||
+                IsDisposed)
+            {
+                return;
+            }
+
+            listBoxPlaylists.DataSource = playlists;
+
+            var previous = playlists.FirstOrDefault(
+                p => p.Id == selectedId);
+
+            if (previous is not null)
+                listBoxPlaylists.SelectedItem = previous;
+
+            DisplayPlaylist();
+
+            if (selectedSongId.HasValue &&
+                SelectedPlaylist is { } selected)
+            {
+                var song = selected.Songs.FirstOrDefault(
+                    s => s.Id == selectedSongId.Value);
+
+                if (song is not null)
+                    listBoxOfSongs.SelectedItem = song;
+            }
+
+            labelStatus.Text = playlists.Count == 0
+                ? "Create a playlist or ask an owner to invite you."
+                : "Songs ranked by votes. Refreshes every 5 seconds.";
+        }
+        catch (Exception ex)
+        {
+            if (ReferenceEquals(session, sharedClient.Session) &&
+                !IsDisposed)
+            {
+                labelStatus.Text = ex.Message;
+            }
+        }
+        finally
+        {
+            loadingPlaylists = false;
+
+            if (!IsDisposed &&
+                !ReferenceEquals(session, sharedClient.Session))
+            {
+                await LoadPlaylistsAsync();
+            }
+        }
+    }
+
+    private void DisplayPlaylist()
+    {
+        var playlist = SelectedPlaylist;
+
+        textBoxId.Text = playlist?.Id.ToString() ?? "";
+
+        listBoxOfSongs.DataSource = playlist?.Songs;
+        listBoxCollaborators.DataSource = playlist?.Collaborators;
+
+        UpdatePlaylistPermissions();
+    }
+
+    private void UpdatePlaylistPermissions()
+    {
+        var signedIn = sharedClient.Session is not null;
+        var enabled = signedIn && !performingAction;
+        var playlist = SelectedPlaylist;
+
+        textBoxName.Text = sharedClient.Session?.User.Name ?? "";
+
+        listBoxPlaylists.Enabled = enabled;
+
+        textBoxMaker.Enabled = enabled;
+        chkBoxCollaborative.Enabled = enabled;
+
+        buttonMake.Enabled = enabled;
+        buttonGet.Enabled = enabled;
+
+        buttonUpdate.Enabled =
+            enabled && playlist?.CanManage == true;
+
+        buttonDelete.Enabled =
+            enabled && playlist?.CanManage == true;
+
+        buttonAddSong.Enabled =
+            enabled && playlist is not null;
+
+        textBoxGenre.Enabled = buttonAddSong.Enabled;
+        textSongArtist.Enabled = buttonAddSong.Enabled;
+
+        buttonVoteSong.Enabled =
+            enabled && playlist?.IsCollaborative == true;
+
+        buttonInvite.Enabled =
+            enabled &&
+            playlist is not null &&
+            playlist.CanManage &&
+            playlist.IsCollaborative;
+
+        textInviteEmail.Enabled = buttonInvite.Enabled;
+
+        if (!signedIn)
+            labelStatus.Text = "Sign in to use playlists.";
+    }
+
+    private HttpRequestMessage MakeRequest(
+        HttpMethod method,
+        string path)
+    {
+        var request = new HttpRequestMessage(method, path);
+
+        if (sharedClient.Session is { } session)
+        {
+            request.Headers.Authorization =
+                new AuthenticationHeaderValue(
+                    "Bearer",
+                    session.Token);
+        }
+
+        return request;
+    }
+
+    private async Task RunActionAsync(
+        HttpMethod method,
+        string path,
+        object? body = null)
+    {
+        if (performingAction || sharedClient.Session is null)
+            return;
+
+        performingAction = true;
+        UpdatePlaylistPermissions();
+
+        try
+        {
+            using var request = MakeRequest(method, path);
+
+            if (body is not null)
+                request.Content = JsonContent.Create(body);
+
+            using var response = await CLient.SendAsync(request);
+            await CheckResponseAsync(response);
+
+            await LoadPlaylistsAsync();
+        }
+        catch (Exception ex)
+        {
+            if (!IsDisposed)
+            {
+                MessageBox.Show(
+                    ex.Message,
+                    "Playlists",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Information);
+            }
+        }
+        finally
+        {
+            performingAction = false;
+
+            if (!IsDisposed)
+                UpdatePlaylistPermissions();
+        }
+    }
+
+    private static async Task CheckResponseAsync(
+        HttpResponseMessage response)
+    {
+        if (response.IsSuccessStatusCode)
+            return;
+
+        if (response.StatusCode ==
+            System.Net.HttpStatusCode.Unauthorized)
+        {
+            throw new InvalidOperationException(
+                "Please sign out and sign in again.");
+        }
+
+        if (response.StatusCode ==
+            System.Net.HttpStatusCode.Forbidden)
+        {
+            throw new InvalidOperationException(
+                "Your account does not have permission for this action.");
+        }
+
+        var message = await response.Content.ReadAsStringAsync();
+
+        throw new InvalidOperationException(
+            string.IsNullOrWhiteSpace(message)
+                ? $"Request failed ({(int)response.StatusCode})."
+                : message);
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            refreshTheTimer?.Stop();
+            refreshTheTimer?.Dispose();
+            CLient?.Dispose();
+        }
+
+        base.Dispose(disposing);
+    }
+
+    public sealed class PlaylistData
+    {
+        public int Id { get; set; }
+        public string Name { get; set; } = "";
+        public string CreatedBy { get; set; } = "";
+        public bool IsCollaborative { get; set; }
+        public bool CanManage { get; set; }
+
+        public List<SongData> Songs { get; set; } = new();
+        public List<CollaboratorData> Collaborators { get; set; } = new();
+    }
+
+    public sealed class SongData
+    {
+        public int Id { get; set; }
+        public string Title { get; set; } = "";
+        public string Artist { get; set; } = "";
+        public int Votes { get; set; }
+        public bool HasVoted { get; set; }
+
+        public string Display =>
+            $"{Title} - {Artist} ({Votes} votes)" +
+            (HasVoted ? " [voted]" : "");
+    }
+
+    public sealed class CollaboratorData
+    {
+        public string Name { get; set; } = "";
+        public string Email { get; set; } = "";
+
+        public string Display => $"{Name} ({Email})";
+    }
 }
