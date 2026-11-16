@@ -23,6 +23,8 @@ public class PlaylistsControl : UserControl
 
     public PlaylistsControl()
     {
+        InitializeComponent();
+
         Controls.Add(new Label
         {
             Text = "Collaborative Playlists",
@@ -31,7 +33,7 @@ public class PlaylistsControl : UserControl
         });
         // TODO: Build this module's screen and connect its service client.
 
-        InitializeComponent();
+        
         
 
 
