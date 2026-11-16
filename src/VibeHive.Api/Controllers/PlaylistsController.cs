@@ -34,7 +34,7 @@ public class PlaylistsController : ControllerBase
             playlist);
     }
 
-    [HttpGet("{id}")]
+[HttpGet("{id}")]
 public IActionResult GetPlaylistById(int id)
 {
     var playlist = playlists.FirstOrDefault(p => p.Id == id);
